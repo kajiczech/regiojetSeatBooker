@@ -8,7 +8,7 @@ which is set in the beginning.
 When the script finds a free seat, it brings the (selenium) browser to the front and then
 buys the ticket automatically (when the user fails to log in, the ticket is just reserved)
 
-Credentials for login along with the tariff can be set in the config.py file
+*Credentials for login along with the tariff can be set in the config.py file - rename and edit config_template.py file*
 
 Multiple times can be checked at once, but only one date.
 

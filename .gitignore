@@ -1,5 +1,6 @@
 .idea/*
 *.pyc
+config.json
 config.py
 SeatFinder/.DS_Store
 SeatFinder/src/.DS_Store selenium/webdriver/.DS_Store

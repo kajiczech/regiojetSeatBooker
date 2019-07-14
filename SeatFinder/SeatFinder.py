@@ -32,12 +32,12 @@ class SeatFinder:
     # Url of the booking webpage (generated from defaultUrl)
     parsedUrl = ""
     chromeDriverLocations = {
-        'mac': 'src/chromedrivers/mac',
-        'windows': 'src\chromedrivers\win.exe',
-        'linux': 'src/chromedrivers/linux'
+        'mac': 'src/chromedrivers/default/mac',
+        'windows': 'src\chromedrivers\default\win.exe',
+        'linux': 'src/chromedrivers/default/linux'
     }
     loginUrl = 'https://jizdenky.regiojet.cz/Login'
-    cities = {'praha': '10202003', 'prague': '10202003', 'pisek': '17904007'}
+    cities = {'Praha': '10202003', 'Pisek': '17904007', 'C. Budejovice': '17904008'}
     tariffs = {'regular': 'REGULAR', 'student': 'CZECH_STUDENT_PASS_26'}
     pageSearches = []
 
@@ -73,7 +73,7 @@ class SeatFinder:
     '''
     Sets the url, driver, nad string[s] which is used to find an empty seat on the webpage
     '''
-    def __init__(self, departure, arrival, date, hours, tariff='REGULAR', baseUrl=None):
+    def __init__(self, departure, arrival, date, hours, tariff='REGULAR', baseUrl=None, chrome_version=None):
         if baseUrl is None:
             baseUrl = self.defaultUrl
         print('Tariff: ' + tariff)
@@ -86,7 +86,7 @@ class SeatFinder:
         chrome_options = Options()
         chrome_options.add_argument('--dns-prefetch-disable')
         chrome_options.add_argument('--no-proxy-server')
-        chromeDriverPath = self.getChromeDriverPath()
+        chromeDriverPath = self.getChromeDriverPath(chrome_version)
         print(chromeDriverPath)
         os.environ["webdriver.chrome.driver"] = chromeDriverPath
         self.driver = webdriver.Chrome(chromeDriverPath, chrome_options=chrome_options)
@@ -146,14 +146,19 @@ class SeatFinder:
         self.driver.close()
 
     # actions specific when the user is not logged in
-    def getChromeDriverPath(self):
+    def getChromeDriverPath(self, chrome_version=None):
         system = platform.system()
         basepath = os.path.dirname(__file__)
         if system == 'Windows':
-            return os.path.abspath(os.path.join(basepath,self.chromeDriverLocations['windows']))
-        if system == 'Darwin':
-            return os.path.abspath(os.path.join(basepath,self.chromeDriverLocations['mac']))
-        return os.path.abspath(os.path.join(basepath,self.chromeDriverLocations['linux']))
+            path = os.path.abspath(os.path.join(basepath, self.chromeDriverLocations['windows']))
+        elif system == 'Darwin':
+            path = os.path.abspath(os.path.join(basepath, self.chromeDriverLocations['mac']))
+        else:
+            path = os.path.abspath(os.path.join(basepath, self.chromeDriverLocations['linux']))
+
+        if chrome_version:
+            path = path.replace('default', str(chrome_version))
+        return path
 
     def takeSeatNotLoggedIn(self):
         self.clickButton(self.driver.find_element_by_name(self.acceptTerms))
@@ -190,17 +195,21 @@ class SeatFinder:
             hours = hours[1:]
         return hours
 
-    # parses date to format 'mmdd'
+    # parses date to format 'yyyymmdd'
     def parseDate(self, date):
         if '.' in date:
             parts = date.split('.')
             if len(parts ) < 2:
                 raise IOError('Invalid date')
+            if len(parts[0]) == 1:
+                parts[0] = "0" + str(parts[0])
+            if len(parts[1]) == 1:
+                parts[1] = "0" + str(parts[1])
             date = parts[1] + parts[0]
         if len(date) == 0:
-            date = date = time.strftime("%m%d")
+            date = time.strftime("%m%d")
         if len(date) != 4:
-            raise IOError('Invalid date')
+            raise IOError('Invalid date' + date)
         year = datetime.datetime.now().year
         return str(year) + date
 
@@ -216,7 +225,7 @@ class SeatFinder:
 
     # gets code of the city
     def getCityCode(self, city):
-        return self.cities[str(city.lower())] if self.cities[str(city.lower())] is not None else city
+        return self.cities[str(city)] if self.cities[str(city)] is not None else city
 
     # gets code of the tarif
     def getTariffCode(self, tariff):

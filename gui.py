@@ -1,3 +1,4 @@
+import base64
 import os
 import platform
 import time
@@ -59,7 +60,7 @@ class LightGUI:
 
         self.username.insert(0, config['username'])
 
-        self.password.insert(0, config['password'])
+        self.password.insert(0, base64.b64decode(config['password']))
 
         # Setting current date
         self.date.insert(0,time.strftime("%d.%m."))
@@ -99,7 +100,10 @@ class LightGUI:
     def find_clicked(self):
         config = ConfigManager.get_config()
         config['username'] = self.username.get()
-        config['password'] = self.password.get()
+
+        # Just obscuring the password a little - for some reason b64encode function does not accept strings... and we need to save it as string because of json...
+        config['password'] = base64.b64encode(self.password.get().encode("utf-8")).decode('utf-8')
+
         config['tariff'] = self.tariff.get()
         config['from'] = self.locationFrom.get()
         config['to'] = self.locationTo.get()
@@ -138,4 +142,3 @@ class LightGUI:
 
         self.window.mainloop()
         ConfigManager.close()
-

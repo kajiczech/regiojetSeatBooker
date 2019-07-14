@@ -1,4 +1,5 @@
 import json
+from json import JSONDecodeError
 
 
 class ConfigManager:
@@ -13,8 +14,8 @@ class ConfigManager:
         'username': '',
         'password': '',
         'tariff': 'regular',
-        'from': 'prague',
-        'to': 'pisek',
+        'from': 'Praha',
+        'to': 'Pisek',
         'chrome_version': 75
     }
 
@@ -27,7 +28,10 @@ class ConfigManager:
 
     @classmethod
     def open_config(cls):
-        fp = open(cls.config_file_name, "r+")
+        try:
+            fp = open(cls.config_file_name, "r+")
+        except FileNotFoundError:
+            fp = open(cls.config_file_name, "w+")
         if not fp:
             raise IOError("Could not open config file " + cls.config_file_name)
         return fp
@@ -42,7 +46,10 @@ class ConfigManager:
         if not self.config_fp:
             self.config_fp = self.open_config()
         self.config_fp.seek(0)
-        return json.load(self.config_fp) or self.default_config
+        try:
+            return json.load(self.config_fp)
+        except JSONDecodeError:
+            return self.default_config
 
     @classmethod
     def set_config(cls, config):

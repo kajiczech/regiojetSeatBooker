@@ -251,7 +251,7 @@ class SeatFinder:
         pwd.send_keys(password)
         pwd.send_keys(Keys.ENTER)
         while not self.checkLoggedIn():
-            time.sleep(1)
+            pass
         self.loggedIn = self.checkLoggedIn()
 
 
@@ -260,7 +260,7 @@ class SeatFinder:
     It is determined from a string on the page which logs out a user
     '''
     def checkLoggedIn(self):
-        time.sleep(3)
+        time.sleep(1)
         logged = True
         try:
             self.driver.find_element_by_xpath("//*[contains(text(), '" + self.notLoggedIn + "')]")

@@ -14,6 +14,8 @@ import os
 import platform
 import inspect
 
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
 
 class SeatFinder:
     urlReplacements = {
@@ -31,10 +33,13 @@ class SeatFinder:
 
     # Url of the booking webpage (generated from defaultUrl)
     parsedUrl = ""
+    chromeDriverDir = os.path.join('src', 'chromedrivers')
+    chromedriver_folder_path = os.path.join(dir_path, 'src', 'chromedrivers')
+    default_chromedriver_folder_name = 'default'
     chromeDriverLocations = {
-        'mac': 'src/chromedrivers/default/mac',
-        'windows': 'src\chromedrivers\default\win.exe',
-        'linux': 'src/chromedrivers/default/linux'
+        'mac': os.path.join(chromedriver_folder_path, default_chromedriver_folder_name, 'mac'),
+        'windows': os.path.join(chromeDriverDir, default_chromedriver_folder_name, 'win.exe'),
+        'linux': os.path.join(chromeDriverDir, default_chromedriver_folder_name, 'lin')
     }
     loginUrl = 'https://jizdenky.regiojet.cz/Login'
     cities = {'Praha': '10202003', 'Pisek': '17904007', 'C. Budejovice': '17904008'}
@@ -135,18 +140,19 @@ class SeatFinder:
             self.takeSeatNotLoggedIn()
 
     # actions specific when the user is not logged in
-    def getChromeDriverPath(self, chrome_version=None):
+    @classmethod
+    def getChromeDriverPath(cls, chrome_version=None):
         system = platform.system()
         basepath = os.path.dirname(__file__)
         if system == 'Windows':
-            path = os.path.abspath(os.path.join(basepath, self.chromeDriverLocations['windows']))
+            path = os.path.abspath(os.path.join(basepath, cls.chromeDriverLocations['windows']))
         elif system == 'Darwin':
-            path = os.path.abspath(os.path.join(basepath, self.chromeDriverLocations['mac']))
+            path = os.path.abspath(os.path.join(basepath, cls.chromeDriverLocations['mac']))
         else:
-            path = os.path.abspath(os.path.join(basepath, self.chromeDriverLocations['linux']))
+            path = os.path.abspath(os.path.join(basepath, cls.chromeDriverLocations['linux']))
 
         if chrome_version:
-            path = path.replace('default', str(chrome_version))
+            path = path.replace(cls.default_chromedriver_folder_name, str(chrome_version))
         return path
 
     def takeSeatNotLoggedIn(self):
@@ -255,4 +261,15 @@ class SeatFinder:
         except NoSuchElementException as e:
             logged = False
         return logged
+
+    @classmethod
+    def get_available_chrome_versions(cls):
+        versions = []
+        for root, subdirs, files in os.walk(cls.chromedriver_folder_path):
+            for subdir in subdirs:
+                if subdir == cls.default_chromedriver_folder_name:
+                    continue
+                versions.append(subdir)
+        return versions
+
 

@@ -39,8 +39,8 @@ class LightGUI:
         self.hours = Entry(self.window, width=10)
 
         self.chrome_version_lbl1 = Label(self.window, text="Chrome version")
-        self.chrome_version_lbl2 = Label(self.window, text="(e.g. 74 - you need to find it in chrome settings)")
-        self.chrome_version = Entry(self.window, width=10)
+        self.chrome_version_lbl2 = Label(self.window, text="If you don't see your version here, see readme file")
+        self.chrome_version = ttk.Combobox(self.window, state="readonly", width=10)
         self.tariff_lbl = Label(self.window, text="Tariff")
         self.tariff = ttk.Combobox(self.window, state="readonly", width=10)
 
@@ -63,9 +63,9 @@ class LightGUI:
         self.password.insert(0, base64.b64decode(config['password']))
 
         # Setting current date
-        self.date.insert(0,time.strftime("%d.%m."))
-
-        self.chrome_version.insert(0, config['chrome_version'])
+        self.date.insert(0, time.strftime("%d.%m."))
+        self.chrome_version['values'] = SeatFinder.get_available_chrome_versions()
+        self.chrome_version.set(config['chrome_version'])
         self.tariff['values'] = list(SeatFinder.tariffs.keys())
         self.tariff.current(1 if config['tariff'] == 'student' else 0)
 

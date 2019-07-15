@@ -48,7 +48,7 @@ class LightGUI:
         self.location_switch_btn = Button(self.window, text="< = >", command=self.switch_clicked, fg='grey', bg='blue', highlightbackground="blue")
 
     def __setup_fields(self):
-        config = ConfigManager.get_config()
+        config = ConfigManager().get_config()
 
         cities = list(SeatFinder.cities.keys())
 
@@ -98,7 +98,7 @@ class LightGUI:
         self.find_btn.grid(column=0, row=7)
 
     def find_clicked(self):
-        config = ConfigManager.get_config()
+        config = ConfigManager().get_config()
         config['username'] = self.username.get()
 
         # Just obscuring the password a little - for some reason b64encode function does not accept strings... and we need to save it as string because of json...
@@ -109,7 +109,7 @@ class LightGUI:
         config['to'] = self.locationTo.get()
         config['chrome_version'] = self.chrome_version.get()
 
-        ConfigManager.set_config(config)
+        ConfigManager().set_config(config)
 
         finder = SeatFinder(
             self.locationFrom.get(),

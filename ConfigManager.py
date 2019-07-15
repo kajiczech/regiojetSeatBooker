@@ -3,70 +3,54 @@ from json import JSONDecodeError
 
 
 class ConfigManager:
+    """Singleton class for config management """
+    instance = None
 
     def __init__(self):
+        if not ConfigManager.instance:
+            ConfigManager.instance = ConfigManager.__ConfigManager()
         pass
 
-    instance = None
-    config_file_name = "config.json"
+    def __getattr__(self, name):
+        return getattr(self.instance, name)
 
-    default_config = {
-        'username': '',
-        'password': '',
-        'tariff': 'regular',
-        'from': 'Praha',
-        'to': 'Pisek',
-        'chrome_version': 75
-    }
+    class __ConfigManager:
+        config_file_name = "config.json"
+        config_fp = None
 
-    @classmethod
-    def get_instance(cls):
-        if not cls.instance:
-            cls.instance = cls()
+        default_config = {
+            'username': '',
+            'password': '',
+            'tariff': 'regular',
+            'from': 'Praha',
+            'to': 'Pisek',
+            'chrome_version': 75
+        }
 
-        return cls.instance
+        def open_config(self):
+            try:
+                fp = open(self.config_file_name, "r+")
+            except FileNotFoundError:
+                fp = open(self.config_file_name, "w+")
+            if not fp:
+                raise IOError("Could not open config file " + self.config_file_name)
+            return fp
 
-    @classmethod
-    def open_config(cls):
-        try:
-            fp = open(cls.config_file_name, "r+")
-        except FileNotFoundError:
-            fp = open(cls.config_file_name, "w+")
-        if not fp:
-            raise IOError("Could not open config file " + cls.config_file_name)
-        return fp
+        def get_config(self):
+            if not self.config_fp:
+                self.config_fp = self.open_config()
+            self.config_fp.seek(0)
+            try:
+                return json.load(self.config_fp)
+            except JSONDecodeError:
+                return self.default_config
 
-    config_fp = None
+        def set_config(self, config):
+            self.config_fp.seek(0)  # <--- should reset file position to the beginning.
+            json.dump(config, self.config_fp, indent=4)
+            self.config_fp.truncate()
 
-    @classmethod
-    def get_config(cls):
-        return cls.get_instance().__get_config()
-
-    def __get_config(self):
-        if not self.config_fp:
-            self.config_fp = self.open_config()
-        self.config_fp.seek(0)
-        try:
-            return json.load(self.config_fp)
-        except JSONDecodeError:
-            return self.default_config
-
-    @classmethod
-    def set_config(cls, config):
-        return cls.get_instance().__set_config(config)
-
-    def __set_config(self, config):
-        self.config_fp.seek(0)  # <--- should reset file position to the beginning.
-        json.dump(config, self.config_fp, indent=4)
-        self.config_fp.truncate()
-
-    @classmethod
-    def close(cls):
-        cls.get_instance().__close()
-        if cls.get_instance().config_fp:
-            cls.get_instance().config_fp.close()
-
-    def __close(self):
-        if self.config_fp:
-            self.config_fp.close()
+        def close(self):
+            if self.config_fp:
+                self.config_fp.close()
 

@@ -143,4 +143,3 @@ class LightGUI:
             os.system('''/usr/bin/osascript -e 'tell app "Finder" to set frontmost of process "Python" to true' ''')
 
         self.window.mainloop()
-        ConfigManager.close()

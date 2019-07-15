@@ -23,7 +23,7 @@ class SeatFinder:
         'tariff': '$tariff'
     }
 
-    #url with mock strings, which should be replaced with relevant data
+    # url with mock strings, which should be replaced with relevant data
     defaultUrl = "https://jizdenky.regiojet.cz/Booking/from/" + urlReplacements['departure'] + "/to/" \
                  + urlReplacements['arrival'] + "/tarif/" + urlReplacements['tariff'] + "/departure/" \
                  + urlReplacements['date'] + "/retdep/" \
@@ -41,13 +41,13 @@ class SeatFinder:
     tariffs = {'regular': 'REGULAR', 'student': 'CZECH_STUDENT_PASS_26'}
     pageSearches = []
 
-    #label of the button which proceeds to an order
+    # label of the button which proceeds to an order
     proceedToOrder = 'Pokračovat k objednávce'
 
     # string to be found on the page, when the user is not logged in
     notLoggedIn = 'Odhlásit'
 
-    #name of the button which is used to buy a ticket (when the user is logged in)
+    # name of the button which is used to buy a ticket (when the user is logged in)
     buyButtonName = 'buttonContainer:createAndPayTicketButton'
     # name of the button which is used to reserve the ticket (when the user is not logged in)
     reserveButtonName = 'buttonContainer:createTicketButton'
@@ -55,13 +55,13 @@ class SeatFinder:
     # we need to accept terms - this is a name of that button (checkbox)
     acceptTerms = 'bottomComponent:termsAgreementCont:termsAgreementCB'
 
-    #just to be completely sure, we add this prefix into the timestamp of the rowid
+    # just to be completely sure, we add this prefix into the timestamp of the rowid
     searchPrefix = 'class="item_blue blue_gradient_our routeSummary free" ybus:rowid="<<b><'
 
-    #selenium driver to controll the browser
+    # selenium driver to controll the browser
     driver = None
 
-    #wehter the user is logged in or not
+    # whether the user is logged in or not
     loggedIn = False
 
     # class of row with seats
@@ -70,13 +70,12 @@ class SeatFinder:
     # class of field with departure
     departureClass = 'col_depart'
 
-    '''
-    Sets the url, driver, nad string[s] which is used to find an empty seat on the webpage
-    '''
     def __init__(self, departure, arrival, date, hours, tariff='REGULAR', baseUrl=None, chrome_version=None):
+        """
+            Sets the url, driver, nad string[s] which is used to find an empty seat on the webpage
+        """
         if baseUrl is None:
             baseUrl = self.defaultUrl
-        print('Tariff: ' + tariff)
         date = self.parseDate(date)
         hours = self.parseHours(hours)
         for hour in hours:
@@ -86,20 +85,21 @@ class SeatFinder:
         chrome_options = Options()
         chrome_options.add_argument('--dns-prefetch-disable')
         chrome_options.add_argument('--no-proxy-server')
-        chromeDriverPath = self.getChromeDriverPath(chrome_version)
-        print(chromeDriverPath)
-        os.environ["webdriver.chrome.driver"] = chromeDriverPath
-        self.driver = webdriver.Chrome(chromeDriverPath, chrome_options=chrome_options)
+        chrome_driwer_path = self.getChromeDriverPath(chrome_version)
+        print(chrome_driwer_path)
+        os.environ["webdriver.chrome.driver"] = chrome_driwer_path
+        self.driver = webdriver.Chrome(chrome_driwer_path, chrome_options=chrome_options)
 
-    # refreshes page until there is not an empty seat
-    # @return id of the foun seat - this is necessary, because user can be searching for more then one seat (aka time)
+
     def findSeat(self):
-
+        """ refreshes page until there is not an empty seat
+             @return element of the found seat
+               - this is necessary, because user can search for more then one seat (aka time)
+        """
         try:
             self.driver.get(self.parsedUrl)
-            print (self.pageSearches)
             while 1:
-
+                time.sleep(1)
                 elements = self.driver.find_elements_by_class_name(self.seatClass)
                 for search in self.pageSearches:
                     for element in elements:
@@ -108,17 +108,12 @@ class SeatFinder:
                             if depart.text == search:
                                 print('found')
                                 return element
-                html = self.driver.page_source
                 print('not found')
                 try:
                     self.driver.refresh()
                 # when the webpage crashes
                 except TimeoutException:
                     self.driver.get(self.parsedUrl)
-                time.sleep(1)
-        # except TypeError:
-        #     print('TypeError')
-        #     return False
         except WebDriverException:
             print('WebDriverException')
             return False
@@ -128,6 +123,7 @@ class SeatFinder:
 
         self.clickButton(element.find_element_by_class_name('col_price'), 1)
 
+        # Brings browser to front
         self.driver.execute_script('window.alert("Seat found!!!")')
         alert = self.driver.switch_to.alert
         alert.accept()
@@ -137,13 +133,6 @@ class SeatFinder:
             self.takeSeatLoggedIn()
         else:
             self.takeSeatNotLoggedIn()
-        global input
-        try:
-            input = raw_input
-        except NameError:
-            pass
-        input('Press enter to quit')
-        self.driver.close()
 
     # actions specific when the user is not logged in
     def getChromeDriverPath(self, chrome_version=None):
@@ -191,6 +180,10 @@ class SeatFinder:
         # for i in range(len(hours)):
         #     hour = int(hours[i].replace(':', '')) - (200 if tm.tm_isdst else 100)
         #     hours[i] = '0' + str(hour) if hour < 1000 else str(hour)
+
+        if not hours[0]:
+            raise ValueError("No hours specified")
+
         if hours[0] == '0':
             hours = hours[1:]
         return hours
@@ -243,23 +236,18 @@ class SeatFinder:
         self.driver.get(self.loginUrl)
         login = self.driver.find_element_by_id('login_credit')
         pwd = self.driver.find_element_by_id('pwd_credit')
-        str = "document.getElementById('login_credit').value=\"" + username + "\""
-        print(str)
-        # login.send_keys(username)
-        # login.send_keys(Keys.NUMPAD3)
-        self.driver.execute_script(str)
+        login.send_keys(username)
         pwd.send_keys(password)
         pwd.send_keys(Keys.ENTER)
         while not self.checkLoggedIn():
             pass
         self.loggedIn = self.checkLoggedIn()
 
-
-    '''
-    checks,whether the user is logged in or not
-    It is determined from a string on the page which logs out a user
-    '''
     def checkLoggedIn(self):
+        """
+            checks,whether the user is logged in or not
+            It is determined from a string on the page which logs out a user
+        """
         time.sleep(1)
         logged = True
         try:

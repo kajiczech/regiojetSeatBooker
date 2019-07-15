@@ -2,17 +2,7 @@ import json
 
 
 class ConfigManager:
-    """Singleton class for config management """
-
-    __instance = None
-
-    def __new__(cls):
-        if ConfigManager.__instance is None:
-            ConfigManager.__instance = object.__new__(cls)
-        return ConfigManager.__instance
-
     config_file_name = "config.json"
-    config_fp = None
 
     default_config = {
         'username': '',
@@ -23,30 +13,32 @@ class ConfigManager:
         'chrome_version': 75
     }
 
-    def open_config(self):
+    @classmethod
+    def get_config(cls):
         try:
-            fp = open(self.config_file_name, "r+")
-        except IOError:
-            fp = open(self.config_file_name, "w+")
-        if not fp:
-            raise IOError("Could not open config file " + self.config_file_name)
-        return fp
+            fp = open(cls.config_file_name, "r")
+            config = json.load(fp)
+            fp.close()
+            return config
+        except (IOError, ValueError):
+            return cls.default_config
 
-    def get_config(self):
-        if not self.config_fp:
-            self.config_fp = self.open_config()
-        self.config_fp.seek(0)
-        try:
-            return json.load(self.config_fp)
-        except ValueError:
-            return self.default_config
+    @classmethod
+    def set_config(cls, config):
+        # Make sure, that all necessary keys are in the config to avoid value errors
+        config = cls.merge_dicts(cls.default_config, config)
+        with open(cls.config_file_name, "w+") as fp:
+            json.dump(config, fp, indent=4)
+            fp.close()
 
-    def set_config(self, config):
-        self.config_fp.seek(0)  # <--- should reset file position to the beginning.
-        json.dump(config, self.config_fp, indent=4)
-        self.config_fp.truncate()
-
-    def close(self):
-        if self.config_fp:
-            self.config_fp.close()
+    @staticmethod
+    def merge_dicts(*dict_args):
+        """
+        Given any number of dicts, shallow copy and merge into a new dict,
+        precedence goes to key value pairs in latter dicts.
+        """
+        result = {}
+        for dictionary in dict_args:
+            result.update(dictionary)
+        return result
 

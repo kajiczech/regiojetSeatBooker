@@ -48,7 +48,7 @@ class LightGUI:
         self.location_switch_btn = Button(self.window, text="< = >", command=self.switch_clicked, fg='grey', bg='blue', highlightbackground="blue")
 
     def __setup_fields(self):
-        config = ConfigManager().get_config()
+        config = ConfigManager.get_config()
 
         cities = list(SeatFinder.cities.keys())
 
@@ -98,19 +98,10 @@ class LightGUI:
         self.find_btn.grid(column=0, row=7)
 
     def find_clicked(self):
-        config = ConfigManager().get_config()
-        config['username'] = self.username.get()
+        self.save_config()
+        self.find_and_take_seat()
 
-        # Just obscuring the password a little - for some reason b64encode function does not accept strings... and we need to save it as string because of json...
-        config['password'] = base64.b64encode(self.password.get().encode("utf-8")).decode('utf-8')
-
-        config['tariff'] = self.tariff.get()
-        config['from'] = self.locationFrom.get()
-        config['to'] = self.locationTo.get()
-        config['chrome_version'] = self.chrome_version.get()
-
-        ConfigManager().set_config(config)
-
+    def find_and_take_seat(self):
         finder = SeatFinder(
             self.locationFrom.get(),
             self.locationTo.get(),
@@ -120,10 +111,21 @@ class LightGUI:
             chrome_version=self.chrome_version.get())
 
         finder.login(self.username.get(), self.password.get())
-        foundElem = finder.findSeat()
-        if not foundElem:
+        found_elem = finder.findSeat()
+        if not found_elem:
             return
-        finder.takeSeat(foundElem)
+        finder.takeSeat(found_elem)
+
+    def save_config(self):
+        config = {
+            'username': self.username.get(),
+            'password': base64.b64encode(self.password.get().encode("utf-8")).decode('utf-8'),
+            'tariff': self.tariff.get(),
+            'from': self.locationFrom.get(),
+            'to': self.locationTo.get(),
+            'chrome_version': self.chrome_version.get()
+        }
+        ConfigManager.set_config(config)
 
     def switch_clicked(self):
         location_from = self.locationFrom.get()

@@ -1,5 +1,4 @@
 import json
-from json import JSONDecodeError
 
 
 class ConfigManager:
@@ -30,7 +29,7 @@ class ConfigManager:
         def open_config(self):
             try:
                 fp = open(self.config_file_name, "r+")
-            except FileNotFoundError:
+            except IOError:
                 fp = open(self.config_file_name, "w+")
             if not fp:
                 raise IOError("Could not open config file " + self.config_file_name)
@@ -42,7 +41,7 @@ class ConfigManager:
             self.config_fp.seek(0)
             try:
                 return json.load(self.config_fp)
-            except JSONDecodeError:
+            except ValueError:
                 return self.default_config
 
         def set_config(self, config):

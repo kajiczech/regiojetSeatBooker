@@ -3,22 +3,20 @@
 import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.keys import Keys
 import datetime
 from selenium.common.exceptions import *
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.keys import Keys
 import os
 import platform
-import inspect
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
+seat_finder_directory_path = os.path.dirname(os.path.realpath(__file__))
 
 
 class SeatFinder:
-    urlReplacements = {
+    url_replacements = {
         'arrival': '$arrival',
         'departure': '$departure',
         'date': '$date',
@@ -26,179 +24,175 @@ class SeatFinder:
     }
 
     # url with mock strings, which should be replaced with relevant data
-    defaultUrl = "https://jizdenky.regiojet.cz/Booking/from/" + urlReplacements['departure'] + "/to/" \
-                 + urlReplacements['arrival'] + "/tarif/" + urlReplacements['tariff'] + "/departure/" \
-                 + urlReplacements['date'] + "/retdep/" \
-                 + urlReplacements['date'] + "/return/false?0#search-results"
+    default_url = "https://jizdenky.regiojet.cz/Booking/from/" + url_replacements['departure'] + "/to/" \
+                  + url_replacements['arrival'] + "/tarif/" + url_replacements['tariff'] + "/departure/" \
+                  + url_replacements['date'] + "/retdep/" \
+                  + url_replacements['date'] + "/return/false?0#search-results"
 
     # Url of the booking webpage (generated from defaultUrl)
-    parsedUrl = ""
-    chromeDriverDir = os.path.join('src', 'chromedrivers')
-    chromedriver_folder_path = os.path.join(dir_path, 'src', 'chromedrivers')
+    parsed_url = ""
+    chrome_driver_dir = os.path.join('src', 'chromedrivers')
+    chromedriver_folder_path = os.path.join(seat_finder_directory_path, 'src', 'chromedrivers')
     default_chromedriver_folder_name = 'default'
     chromeDriverLocations = {
         'mac': os.path.join(chromedriver_folder_path, default_chromedriver_folder_name, 'mac'),
-        'windows': os.path.join(chromeDriverDir, default_chromedriver_folder_name, 'win.exe'),
-        'linux': os.path.join(chromeDriverDir, default_chromedriver_folder_name, 'lin')
+        'windows': os.path.join(chrome_driver_dir, default_chromedriver_folder_name, 'win.exe'),
+        'linux': os.path.join(chrome_driver_dir, default_chromedriver_folder_name, 'lin')
     }
-    loginUrl = 'https://jizdenky.regiojet.cz/Login'
+    login_url = 'https://jizdenky.regiojet.cz/Login'
     cities = {'Praha': '10202003', 'Pisek': '17904007', 'C. Budejovice': '17904008'}
     tariffs = {'regular': 'REGULAR', 'student': 'CZECH_STUDENT_PASS_26'}
-    pageSearches = []
+    page_searches = []
 
     # label of the button which proceeds to an order
-    proceedToOrder = 'Pokračovat k objednávce'
+    proceed_to_order_label = 'Pokračovat k objednávce'
 
     # string to be found on the page, when the user is not logged in
-    notLoggedIn = 'Odhlásit'
+    not_logged_in_label = 'Odhlásit'
 
     # name of the button which is used to buy a ticket (when the user is logged in)
-    buyButtonName = 'buttonContainer:createAndPayTicketButton'
+    buy_button_name = 'buttonContainer:createAndPayTicketButton'
     # name of the button which is used to reserve the ticket (when the user is not logged in)
-    reserveButtonName = 'buttonContainer:createTicketButton'
+    reserve_button_name = 'buttonContainer:createTicketButton'
 
     # we need to accept terms - this is a name of that button (checkbox)
-    acceptTerms = 'bottomComponent:termsAgreementCont:termsAgreementCB'
+    accept_terms_checkbox_name = 'bottomComponent:termsAgreementCont:termsAgreementCB'
 
     # just to be completely sure, we add this prefix into the timestamp of the rowid
-    searchPrefix = 'class="item_blue blue_gradient_our routeSummary free" ybus:rowid="<<b><'
+    seat_search_prefix = 'class="item_blue blue_gradient_our routeSummary free" ybus:rowid="<<b><'
 
-    # selenium driver to controll the browser
-    driver = None
+    # selenium driver to control the browser
+    selenium_driver = None
 
     # whether the user is logged in or not
-    loggedIn = False
+    is_user_logged_in = False
 
     # class of row with seats
-    seatClass = 'item_blue'
+    seat_button_class_name = 'item_blue'
 
     # class of field with departure
-    departureClass = 'col_depart'
+    departure_field_class = 'col_depart'
 
-    def __init__(self, departure, arrival, date, hours, tariff='REGULAR', baseUrl=None, chrome_version=None):
+    def __init__(self, departure, arrival, date, times, tariff='REGULAR', base_url=None, chrome_version=None):
         """
             Sets the url, driver, nad string[s] which is used to find an empty seat on the webpage
         """
-        if baseUrl is None:
-            baseUrl = self.defaultUrl
-        date = self.parseDate(date)
-        hours = self.parseHours(hours)
-        for hour in hours:
-            self.pageSearches.append(self.createPageSearch(hour, date))
+        if base_url is None:
+            base_url = self.default_url
+        date = self.parse_date(date)
+        times = self.parse_times(times)
+        for one_time in times:
+            self.page_searches.append(one_time)
 
-        self.setParsedUrl(departure, arrival, date, tariff, baseUrl)
+        self.set_parsed_url(departure, arrival, date, tariff, base_url)
         chrome_options = Options()
         chrome_options.add_argument('--dns-prefetch-disable')
         chrome_options.add_argument('--no-proxy-server')
-        chrome_driwer_path = self.getChromeDriverPath(chrome_version)
+        chrome_driwer_path = self.get_chrome_driver_path(chrome_version)
         print(chrome_driwer_path)
         os.environ["webdriver.chrome.driver"] = chrome_driwer_path
-        self.driver = webdriver.Chrome(chrome_driwer_path, chrome_options=chrome_options)
+        self.selenium_driver = webdriver.Chrome(chrome_driwer_path, chrome_options=chrome_options)
 
-
-    def findSeat(self):
+    def find_seat(self):
         """ refreshes page until there is not an empty seat
              @return element of the found seat
                - this is necessary, because user can search for more then one seat (aka time)
         """
         try:
-            self.driver.get(self.parsedUrl)
+            self.selenium_driver.get(self.parsed_url)
             while 1:
                 time.sleep(1)
-                elements = self.driver.find_elements_by_class_name(self.seatClass)
-                for search in self.pageSearches:
+                elements = self.selenium_driver.find_elements_by_class_name(self.seat_button_class_name)
+                for search in self.page_searches:
                     for element in elements:
-                        departs = element.find_elements_by_class_name(self.departureClass)
+                        departs = element.find_elements_by_class_name(self.departure_field_class)
                         for depart in departs:
                             if depart.text == search:
                                 print('found')
                                 return element
                 print('not found')
                 try:
-                    self.driver.refresh()
+                    self.selenium_driver.refresh()
                 # when the webpage crashes
                 except TimeoutException:
-                    self.driver.get(self.parsedUrl)
+                    self.selenium_driver.get(self.parsed_url)
         except WebDriverException:
             print('WebDriverException')
             return False
 
     # performs the actions necessary to book the seat, when some seat is empty
-    def takeSeat(self, element):
+    def take_seat(self, element):
 
-        self.clickButton(element.find_element_by_class_name('col_price'), 1)
+        self.click_button(element.find_element_by_class_name('col_price'), 1)
 
         # Brings browser to front
-        self.driver.execute_script('window.alert("Seat found!!!")')
-        alert = self.driver.switch_to.alert
+        self.selenium_driver.execute_script('window.alert("Seat found!!!")')
+        alert = self.selenium_driver.switch_to.alert
         alert.accept()
         time.sleep(2)
-        self.clickButton(self.driver.find_element_by_xpath("//*[contains(text(), '" + self.proceedToOrder + "')]"))
-        if self.loggedIn:
-            self.takeSeatLoggedIn()
+        self.click_button(
+            self.selenium_driver.find_element_by_xpath("//*[contains(text(), '" + self.proceed_to_order_label + "')]")
+        )
+        if self.is_user_logged_in:
+            self.take_seat_logged_in()
         else:
-            self.takeSeatNotLoggedIn()
+            self.take_seat_not_logged_in()
 
     # actions specific when the user is not logged in
     @classmethod
-    def getChromeDriverPath(cls, chrome_version=None):
+    def get_chrome_driver_path(cls, chrome_version=None):
         system = platform.system()
-        basepath = os.path.dirname(__file__)
         if system == 'Windows':
-            path = os.path.abspath(os.path.join(basepath, cls.chromeDriverLocations['windows']))
+            path = cls.chromeDriverLocations['windows']
         elif system == 'Darwin':
-            path = os.path.abspath(os.path.join(basepath, cls.chromeDriverLocations['mac']))
+            path = cls.chromeDriverLocations['mac']
         else:
-            path = os.path.abspath(os.path.join(basepath, cls.chromeDriverLocations['linux']))
+            path = cls.chromeDriverLocations['linux']
 
         if chrome_version:
             path = path.replace(cls.default_chromedriver_folder_name, str(chrome_version))
         return path
 
-    def takeSeatNotLoggedIn(self):
-        self.clickButton(self.driver.find_element_by_name(self.acceptTerms))
-        self.clickButton(self.driver.find_element_by_name(self.reserveButtonName))
+    def take_seat_not_logged_in(self):
+        self.click_button(self.selenium_driver.find_element_by_name(self.accept_terms_checkbox_name))
+        self.click_button(self.selenium_driver.find_element_by_name(self.reserve_button_name))
 
     # actions specific to when the user is logged in
-    def takeSeatLoggedIn(self):
+    def take_seat_logged_in(self):
         try:
-            self.clickButton(self.driver.find_element_by_name(self.buyButtonName))
+            self.click_button(self.selenium_driver.find_element_by_name(self.buy_button_name))
         except NoSuchElementException:
-            self.clickButton(self.driver.find_element_by_name(self.reserveButtonName))
+            self.click_button(self.selenium_driver.find_element_by_name(self.reserve_button_name))
 
     # clicks given button (or any element, does not have to be explicitly button)
-    def clickButton(self, button, timeout=0):
+    def click_button(self, button, timeout=0):
         time.sleep(timeout)
-        # TODO http://stackoverflow.com/questions/24411765/how-to-get-an-xpath-from-selenium-webelement-or-from-lxml
+        # TODO: http://stackoverflow.com/questions/24411765/how-to-get-an-xpath-from-selenium-webelement-or-from-lxml
         if button.get_attribute('id'):
-            wait = WebDriverWait(self.driver, 10)
-            button = wait.until(EC.element_to_be_clickable((By.ID, button.get_attribute('id'))))
+            wait = WebDriverWait(self.selenium_driver, 10)
+            button = wait.until(ec.element_to_be_clickable((By.ID, button.get_attribute('id'))))
             try:
                 button.send_keys(Keys.NULL)
             except WebDriverException:
                 pass
         button.click()
 
-    # parses hours to format ['HHMM',....] (M = minutes...)
-    # hotfix - don't set hour so utc
-    def parseHours(self, hours):
-        # tm = time.localtime()
-        # for i in range(len(hours)):
-        #     hour = int(hours[i].replace(':', '')) - (200 if tm.tm_isdst else 100)
-        #     hours[i] = '0' + str(hour) if hour < 1000 else str(hour)
+    # parses times to format ['HHMM',....] (M = minutes...)
+    @staticmethod
+    def parse_times(times):
+        if not times[0]:
+            raise ValueError("No times specified")
 
-        if not hours[0]:
-            raise ValueError("No hours specified")
-
-        if hours[0] == '0':
-            hours = hours[1:]
-        return hours
+        if times[0] == '0':
+            times = times[1:]
+        return times
 
     # parses date to format 'yyyymmdd'
-    def parseDate(self, date):
+    @staticmethod
+    def parse_date(date):
         if '.' in date:
             parts = date.split('.')
-            if len(parts ) < 2:
+            if len(parts) < 2:
                 raise IOError('Invalid date')
             if len(parts[0]) == 1:
                 parts[0] = "0" + str(parts[0])
@@ -213,43 +207,38 @@ class SeatFinder:
         return str(year) + date
 
     # replaces elements in base url so it makes sense
-    def setParsedUrl(self, departure, arrival, date, tariff, baseUrl):
-        departure = self.getCityCode(departure)
-        arrival = self.getCityCode(arrival)
-        tariff = self.getTariffCode(tariff)
-        tmpUrl = baseUrl.replace(self.urlReplacements['arrival'], arrival)
-        tmpUrl = tmpUrl.replace(self.urlReplacements['departure'], departure)
-        tmpUrl = tmpUrl.replace(self.urlReplacements['tariff'], tariff)
-        self.parsedUrl = tmpUrl.replace(self.urlReplacements['date'], date)
+    def set_parsed_url(self, departure, arrival, date, tariff, base_url):
+        departure = self.get_city_code(departure)
+        arrival = self.get_city_code(arrival)
+        tariff = self.get_tariff_code(tariff)
+        tmp_url = base_url.replace(self.url_replacements['arrival'], arrival)
+        tmp_url = tmp_url.replace(self.url_replacements['departure'], departure)
+        tmp_url = tmp_url.replace(self.url_replacements['tariff'], tariff)
+        self.parsed_url = tmp_url.replace(self.url_replacements['date'], date)
 
     # gets code of the city
-    def getCityCode(self, city):
+    def get_city_code(self, city):
         return self.cities[str(city)] if self.cities[str(city)] is not None else city
 
     # gets code of the tarif
-    def getTariffCode(self, tariff):
+    def get_tariff_code(self, tariff):
         return self.tariffs[str(tariff.lower())] if self.tariffs[str(tariff.lower())] is not None else tariff
-
-    # creates one page search in format searchPrefixddmmHHMM
-    # hotfixing - now searching by time in col_depart value which is H:MM
-    def createPageSearch(self, hour, date):
-        return hour
 
     # logs user with given username an password
     def login(self, username, password):
         if len(username) == 0 or len(password) == 0:
             return
-        self.driver.get(self.loginUrl)
-        login = self.driver.find_element_by_id('login_credit')
-        pwd = self.driver.find_element_by_id('pwd_credit')
+        self.selenium_driver.get(self.login_url)
+        login = self.selenium_driver.find_element_by_id('login_credit')
+        pwd = self.selenium_driver.find_element_by_id('pwd_credit')
         login.send_keys(username)
         pwd.send_keys(password)
         pwd.send_keys(Keys.ENTER)
-        while not self.checkLoggedIn():
+        while not self.check_logged_in():
             pass
-        self.loggedIn = self.checkLoggedIn()
+        self.is_user_logged_in = self.check_logged_in()
 
-    def checkLoggedIn(self):
+    def check_logged_in(self):
         """
             checks,whether the user is logged in or not
             It is determined from a string on the page which logs out a user
@@ -257,8 +246,8 @@ class SeatFinder:
         time.sleep(1)
         logged = True
         try:
-            self.driver.find_element_by_xpath("//*[contains(text(), '" + self.notLoggedIn + "')]")
-        except NoSuchElementException as e:
+            self.selenium_driver.find_element_by_xpath("//*[contains(text(), '" + self.not_logged_in_label + "')]")
+        except NoSuchElementException:
             logged = False
         return logged
 
@@ -271,5 +260,3 @@ class SeatFinder:
                     continue
                 versions.append(subdir)
         return versions
-
-

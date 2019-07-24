@@ -36,8 +36,8 @@ class SeatFinder:
     default_chromedriver_folder_name = 'default'
     chromeDriverLocations = {
         'mac': os.path.join(chromedriver_folder_path, default_chromedriver_folder_name, 'mac'),
-        'windows': os.path.join(chrome_driver_dir, default_chromedriver_folder_name, 'win.exe'),
-        'linux': os.path.join(chrome_driver_dir, default_chromedriver_folder_name, 'lin')
+        'windows': os.path.join(chromedriver_folder_path, default_chromedriver_folder_name, 'win.exe'),
+        'linux': os.path.join(chromedriver_folder_path, default_chromedriver_folder_name, 'lin')
     }
     login_url = 'https://jizdenky.regiojet.cz/Login'
     cities = {'Praha': '10202003', 'Pisek': '17904007', 'C. Budejovice': '17904008'}
@@ -88,10 +88,21 @@ class SeatFinder:
         chrome_options = Options()
         chrome_options.add_argument('--dns-prefetch-disable')
         chrome_options.add_argument('--no-proxy-server')
-        chrome_driwer_path = self.get_chrome_driver_path(chrome_version)
-        print(chrome_driwer_path)
-        os.environ["webdriver.chrome.driver"] = chrome_driwer_path
-        self.selenium_driver = webdriver.Chrome(chrome_driwer_path, chrome_options=chrome_options)
+        chrome_driver_path = self.get_chrome_driver_path(chrome_version)
+
+        print(
+              "Date: {}\n"
+              "Times {}\n"
+              "From {} to {}\n"
+              "Tariff: {}\n"
+              "Chromedriver path: {}\n"
+              "Chrome version: {}\n".format(
+                date, str(times), departure, arrival, tariff, chrome_driver_path, chrome_version
+            )
+        )
+
+        os.environ["webdriver.chrome.driver"] = chrome_driver_path
+        self.selenium_driver = webdriver.Chrome(chrome_driver_path, chrome_options=chrome_options)
 
     def find_seat(self):
         """ refreshes page until there is not an empty seat

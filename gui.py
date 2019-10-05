@@ -2,6 +2,9 @@ import base64
 import os
 import platform
 import time
+
+from selenium.common.exceptions import WebDriverException
+
 try:
     # for Python2
     from Tkinter import *
@@ -13,14 +16,14 @@ except ImportError:
     from tkinter import ttk
 from ConfigManager import ConfigManager
 from SeatFinder.SeatFinder import SeatFinder
+from SeatFinder.webdriver_management import *
 
 
 class LightGUI:
     
-    window = None
+    window = Tk()
 
     def __init__(self):
-        self.window = Tk()
         self.window.title("RegiojetSeatBooker")
         self.window.geometry('600x300')
         self.location_from = ttk.Combobox(self.window, state="readonly", width=10)
@@ -67,7 +70,7 @@ class LightGUI:
 
         # Setting current date
         self.date.insert(0, time.strftime("%d.%m."))
-        self.chrome_version['values'] = SeatFinder.get_available_chrome_versions()
+        self.chrome_version['values'] = get_available_chrome_versions()
         self.chrome_version.set(config['chrome_version'])
         self.tariff['values'] = list(SeatFinder.tariffs.keys())
         self.tariff.current(1 if config['tariff'] == 'student' else 0)
@@ -102,7 +105,21 @@ class LightGUI:
 
     def find_clicked(self):
         self.save_config()
-        self.find_and_take_seat()
+        try:
+            self.find_and_take_seat()
+        except WebDriverException as e:
+
+            if 'session not created: This version of ChromeDriver only supports Chrome version' not in e.msg:
+                raise e
+
+            latest_version = find_latest_chromedriver_version()
+            if not latest_version:
+                raise Exception("Chromedriver not found!")
+
+            self.chrome_version.set(latest_version)
+
+            self.save_config()
+            self.find_and_take_seat()
 
     def find_and_take_seat(self):
         finder = SeatFinder(
@@ -111,7 +128,8 @@ class LightGUI:
             self.date.get(),
             self.times.get().split(' '),
             self.tariff.get(),
-            chrome_version=self.chrome_version.get())
+            chrome_version=self.chrome_version.get()
+        )
 
         finder.login(self.username.get(), self.password.get())
         found_elem = finder.find_seat()

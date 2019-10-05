@@ -9,11 +9,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.keys import Keys
+from .webdriver_management import *
 import os
 import platform
-
-seat_finder_directory_path = os.path.dirname(os.path.realpath(__file__))
-
 
 class SeatFinder:
     url_replacements = {
@@ -31,14 +29,7 @@ class SeatFinder:
 
     # Url of the booking webpage (generated from defaultUrl)
     parsed_url = ""
-    chrome_driver_dir = os.path.join('src', 'chromedrivers')
-    chromedriver_folder_path = os.path.join(seat_finder_directory_path, 'src', 'chromedrivers')
-    default_chromedriver_folder_name = 'default'
-    chromeDriverLocations = {
-        'mac': os.path.join(chromedriver_folder_path, default_chromedriver_folder_name, 'mac'),
-        'windows': os.path.join(chromedriver_folder_path, default_chromedriver_folder_name, 'win.exe'),
-        'linux': os.path.join(chromedriver_folder_path, default_chromedriver_folder_name, 'lin')
-    }
+
     login_url = 'https://jizdenky.regiojet.cz/Login'
     cities = {'Praha': '10202003', 'Pisek': '17904007', 'C. Budejovice': '17904008'}
     tariffs = {'regular': 'REGULAR', 'student': 'CZECH_STUDENT_PASS_26'}
@@ -85,24 +76,18 @@ class SeatFinder:
             self.page_searches.append(one_time)
 
         self.set_parsed_url(departure, arrival, date, tariff, base_url)
-        chrome_options = Options()
-        chrome_options.add_argument('--dns-prefetch-disable')
-        chrome_options.add_argument('--no-proxy-server')
-        chrome_driver_path = self.get_chrome_driver_path(chrome_version)
 
         print(
               "Date: {}\n"
               "Times {}\n"
               "From {} to {}\n"
               "Tariff: {}\n"
-              "Chromedriver path: {}\n"
               "Chrome version: {}\n".format(
-                date, str(times), departure, arrival, tariff, chrome_driver_path, chrome_version
+                date, str(times), departure, arrival, tariff, chrome_version
             )
         )
 
-        os.environ["webdriver.chrome.driver"] = chrome_driver_path
-        self.selenium_driver = webdriver.Chrome(chrome_driver_path, chrome_options=chrome_options)
+        self.selenium_driver = get_chromedriver(chrome_version)
 
     def find_seat(self):
         """ refreshes page until there is not an empty seat
@@ -148,21 +133,6 @@ class SeatFinder:
             self.take_seat_logged_in()
         else:
             self.take_seat_not_logged_in()
-
-    # actions specific when the user is not logged in
-    @classmethod
-    def get_chrome_driver_path(cls, chrome_version=None):
-        system = platform.system()
-        if system == 'Windows':
-            path = cls.chromeDriverLocations['windows']
-        elif system == 'Darwin':
-            path = cls.chromeDriverLocations['mac']
-        else:
-            path = cls.chromeDriverLocations['linux']
-
-        if chrome_version:
-            path = path.replace(cls.default_chromedriver_folder_name, str(chrome_version))
-        return path
 
     def take_seat_not_logged_in(self):
         self.click_button(self.selenium_driver.find_element_by_name(self.accept_terms_checkbox_name))
@@ -262,12 +232,3 @@ class SeatFinder:
             logged = False
         return logged
 
-    @classmethod
-    def get_available_chrome_versions(cls):
-        versions = []
-        for root, subdirs, files in os.walk(cls.chromedriver_folder_path):
-            for subdir in subdirs:
-                if subdir == cls.default_chromedriver_folder_name:
-                    continue
-                versions.append(subdir)
-        return versions

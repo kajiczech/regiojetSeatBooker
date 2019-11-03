@@ -80,6 +80,8 @@ class SeatFinder:
             base_url = self.default_url
         date = self.parse_date(date)
         times = self.parse_times(times)
+
+        self.page_searches = []
         for one_time in times:
             self.page_searches.append(one_time)
 

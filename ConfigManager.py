@@ -12,9 +12,9 @@ class ConfigManager:
         'to': 'Pisek',
         'chrome_version': 75,
         'train_classes': {
-            'low_cost',
-            'standard',
-            'relax'
+            '0',
+            '1',
+            '2'
         }
     }
 

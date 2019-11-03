@@ -5,7 +5,7 @@ This script uses a Selenium webdriver to login, periodically search for empty se
 
 ## Requirements
 
-You only need a Python and Chrome installed. 
+You only need a Python and Chrome installed. It runs on Mac Windows and Linux and on python >2.7 or >3.6
 Python can be downloaded from https://www.python.org/downloads/
 
 ## How to run

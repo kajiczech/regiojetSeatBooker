@@ -31,9 +31,16 @@ class SeatFinder:
     parsed_url = ""
 
     login_url = 'https://jizdenky.regiojet.cz/Login'
-    cities = {'Praha': '10202003', 'Pisek': '17904007', 'C. Budejovice': '17904008'}
+    cities = {'Praha': '10202003', 'Pisek': '17904007', 'C. Budejovice': '17904008', 'Brno': '10202002', 'Olomouc': '10202031', 'Ostrava': '10202000'}
     tariffs = {'regular': 'REGULAR', 'student': 'CZECH_STUDENT_PASS_26'}
     page_searches = []
+
+    ticket_class_html_classes = {
+        'low_cost': 'price_item_for_train_low_cost',
+        'standard': 'price_item_for_train_standard',
+        'relax': 'price_item_for_train_relax',
+        'business': 'price_item_for_train_business'
+    }
 
     # label of the button which proceeds to an order
     proceed_to_order_label = 'Pokračovat k objednávce'
@@ -64,7 +71,8 @@ class SeatFinder:
     # class of field with departure
     departure_field_class = 'col_depart'
 
-    def __init__(self, departure, arrival, date, times, tariff='REGULAR', base_url=None, chrome_version=None):
+    def __init__(self, departure, arrival, date, times, tariff='REGULAR', base_url=None, chrome_version=None,
+                 allowed_train_ticket_classes=["low_cost", "standard", "relax"]):
         """
             Sets the url, driver, nad string[s] which is used to find an empty seat on the webpage
         """
@@ -76,6 +84,7 @@ class SeatFinder:
             self.page_searches.append(one_time)
 
         self.set_parsed_url(departure, arrival, date, tariff, base_url)
+        self.allowed_train_ticket_classes = allowed_train_ticket_classes
 
         print(
               "Date: {}\n"
@@ -104,8 +113,11 @@ class SeatFinder:
                         departs = element.find_elements_by_class_name(self.departure_field_class)
                         for depart in departs:
                             if depart.text == search:
-                                print('found')
-                                return element
+                                clickable_element = self.get_clickable_element_for_reservation(element)
+                                if clickable_element:
+                                    print('found')
+                                    return clickable_element
+
                 print('not found')
                 try:
                     self.selenium_driver.refresh()
@@ -119,8 +131,7 @@ class SeatFinder:
     # performs the actions necessary to book the seat, when some seat is empty
     def take_seat(self, element):
 
-        self.click_button(element.find_element_by_class_name('col_price'), 1)
-
+        self.click_button(element, 1)
         # Brings browser to front
         self.selenium_driver.execute_script('window.alert("Seat found!!!")')
         alert = self.selenium_driver.switch_to.alert
@@ -144,6 +155,29 @@ class SeatFinder:
             self.click_button(self.selenium_driver.find_element_by_name(self.buy_button_name))
         except NoSuchElementException:
             self.click_button(self.selenium_driver.find_element_by_name(self.reserve_button_name))
+
+    def get_clickable_element_for_reservation(self, element):
+
+        try:
+            # Bus reservation
+            return element.find_element_by_class_name('col_price')
+        except NoSuchElementException:
+            return self.get_clickable_element_train_reservation(element)
+
+    def get_clickable_element_train_reservation(self, element):
+        self.click_button(element.find_element_by_class_name('detailButton'), 1)
+        time.sleep(1)
+        train_prices_div = self.selenium_driver.execute_script("""
+                        return arguments[0].nextElementSibling
+                    """, element)
+        for ticket_class in self.allowed_train_ticket_classes:
+            class_name = self.ticket_class_html_classes[ticket_class]
+            try:
+                train_price_row = train_prices_div.find_element_by_class_name(class_name)
+                return train_price_row.find_element_by_class_name('detail_icon')
+            except NoSuchElementException:
+                pass
+        return None
 
     # clicks given button (or any element, does not have to be explicitly button)
     def click_button(self, button, timeout=0):

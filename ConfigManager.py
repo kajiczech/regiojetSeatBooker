@@ -10,7 +10,12 @@ class ConfigManager:
         'tariff': 'regular',
         'from': 'Praha',
         'to': 'Pisek',
-        'chrome_version': 75
+        'chrome_version': 75,
+        'train_classes': {
+            'low_cost',
+            'standard',
+            'relax'
+        }
     }
 
     @classmethod
@@ -19,7 +24,9 @@ class ConfigManager:
             fp = open(cls.config_file_name, "r")
             config = json.load(fp)
             fp.close()
-            return config
+            clone = cls.default_config.copy()
+            clone.update(config)
+            return clone
         except (IOError, ValueError):
             return cls.default_config
 

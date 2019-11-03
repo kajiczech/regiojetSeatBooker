@@ -46,6 +46,9 @@ class LightGUI:
         self.tariff_lbl = Label(self.window, text="Tariff")
         self.tariff = ttk.Combobox(self.window, state="readonly", width=10)
 
+        self.train_ticket_classes_lbl = Label(self.window, text="Train ticket classes")
+        self.train_ticket_classes = Listbox(self.window, selectmode=MULTIPLE, height=4, width=10, exportselection=0)
+
         self.find_btn = Button(
             self.window, text="Find seat", command=self.find_clicked, fg='grey', bg='blue', highlightbackground="blue"
         )
@@ -75,6 +78,13 @@ class LightGUI:
         self.tariff['values'] = list(SeatFinder.tariffs.keys())
         self.tariff.current(1 if config['tariff'] == 'student' else 0)
 
+        all_train_classes = SeatFinder.ticket_class_html_classes.keys()
+        for train_class in all_train_classes:
+            self.train_ticket_classes.insert('end', train_class)
+
+        for train_class in config['train_classes']:
+            self.train_ticket_classes.select_set(train_class)
+
     def __build_grid(self):
         self.location_from.grid(column=0, row=0)
         self.location_switch_btn.grid(column=1, row=0)
@@ -101,7 +111,10 @@ class LightGUI:
         self.tariff_lbl.grid(column=0, row=6)
         self.tariff.grid(column=1, row=6)
 
-        self.find_btn.grid(column=0, row=7)
+        self.train_ticket_classes_lbl.grid(column=0, row=7)
+        self.train_ticket_classes.grid(column=1, row=7)
+
+        self.find_btn.grid(column=0, row=8)
 
     def find_clicked(self):
         self.save_config()
@@ -122,16 +135,22 @@ class LightGUI:
             self.find_and_take_seat()
 
     def find_and_take_seat(self):
+        train_classes = []
+        for index in self.train_ticket_classes.curselection():
+            train_classes.append(self.train_ticket_classes.get(index))
+
         finder = SeatFinder(
             self.location_from.get(),
             self.location_to.get(),
             self.date.get(),
             self.times.get().split(' '),
             self.tariff.get(),
-            chrome_version=self.chrome_version.get()
+            chrome_version=self.chrome_version.get(),
+            allowed_train_ticket_classes=train_classes
         )
 
         finder.login(self.username.get(), self.password.get())
+
         found_elem = finder.find_seat()
         if not found_elem:
             return
@@ -144,7 +163,8 @@ class LightGUI:
             'tariff': self.tariff.get(),
             'from': self.location_from.get(),
             'to': self.location_to.get(),
-            'chrome_version': self.chrome_version.get()
+            'chrome_version': self.chrome_version.get(),
+            'train_classes': self.train_ticket_classes.curselection()
         }
         ConfigManager.set_config(config)
 

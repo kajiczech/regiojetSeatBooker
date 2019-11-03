@@ -151,10 +151,17 @@ class LightGUI:
 
         finder.login(self.username.get(), self.password.get())
 
-        found_elem = finder.find_seat()
-        if not found_elem:
-            return
-        finder.take_seat(found_elem)
+        while 1:
+            # Continue searching when the seat is taken faster by someone else
+            # TODO: Check whether the seat was really taken
+            try:
+                found_elem = finder.find_seat()
+                if not found_elem:
+                    continue
+                finder.take_seat(found_elem)
+                return
+            except NoSuchElementException:
+                pass
 
     def save_config(self):
         config = {

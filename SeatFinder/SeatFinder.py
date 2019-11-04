@@ -1,17 +1,15 @@
 # -*- coding: UTF-8 -*-
 
 import time
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 import datetime
-from selenium.common.exceptions import *
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.keys import Keys
+
+# TODO: Change this to import
 from .webdriver_management import *
-import os
-import platform
+
 
 class SeatFinder:
     url_replacements = {
@@ -77,6 +75,8 @@ class SeatFinder:
         """
         if base_url is None:
             base_url = self.default_url
+
+        # TODO: Move parsing to GUI
         date = self.parse_date(date)
         times = self.parse_times(times)
 
@@ -104,30 +104,26 @@ class SeatFinder:
              @return element of the found seat
                - this is necessary, because user can search for more then one seat (aka time)
         """
-        try:
-            self.selenium_driver.get(self.parsed_url)
-            while 1:
-                time.sleep(1)
-                elements = self.selenium_driver.find_elements_by_class_name(self.seat_button_class_name)
-                for search in self.page_searches:
-                    for element in elements:
-                        departs = element.find_elements_by_class_name(self.departure_field_class)
-                        for depart in departs:
-                            if depart.text == search:
-                                clickable_element = self.get_clickable_element_for_reservation(element)
-                                if clickable_element:
-                                    print('found')
-                                    return clickable_element
+        self.selenium_driver.get(self.parsed_url)
+        while 1:
+            time.sleep(1)
+            elements = self.selenium_driver.find_elements_by_class_name(self.seat_button_class_name)
+            for search in self.page_searches:
+                for element in elements:
+                    departs = element.find_elements_by_class_name(self.departure_field_class)
+                    for depart in departs:
+                        if depart.text == search:
+                            clickable_element = self.get_clickable_element_for_reservation(element)
+                            if clickable_element:
+                                print('found')
+                                return clickable_element
 
-                print('not found')
-                try:
-                    self.selenium_driver.refresh()
-                # when the webpage crashes
-                except TimeoutException:
-                    self.selenium_driver.get(self.parsed_url)
-        except WebDriverException:
-            print('WebDriverException')
-            return False
+            print('not found')
+            try:
+                self.selenium_driver.refresh()
+            # when the webpage crashes
+            except TimeoutException:
+                self.selenium_driver.get(self.parsed_url)
 
     # performs the actions necessary to book the seat, when some seat is empty
     def take_seat(self, element):
@@ -161,21 +157,25 @@ class SeatFinder:
 
         try:
             # Bus reservation
-            return element.find_element_by_class_name('col_price')
+            price_button = element.find_element_by_class_name('col_price')
+            price_button.find_element_by_xpath('..').find_element_by_xpath('.//*[@title="Autobus"]')
+            return price_button
         except NoSuchElementException:
             return self.get_clickable_element_train_reservation(element)
 
     def get_clickable_element_train_reservation(self, element):
-        self.click_button(element.find_element_by_class_name('detailButton'), 1)
-        time.sleep(1)
-        train_prices_div = self.selenium_driver.execute_script("""
-                        return arguments[0].nextElementSibling
-                    """, element)
+        train_prices_div = self.get_next_sibling(element)
         for ticket_class in self.allowed_train_ticket_classes:
             class_name = self.ticket_class_html_classes[ticket_class]
             try:
                 train_price_row = train_prices_div.find_element_by_class_name(class_name)
-                return train_price_row.find_element_by_class_name('detail_icon')
+                try:
+                    self.click_button(element.find_element_by_class_name('detailButton'), 1)
+                    time.sleep(1)
+                    return train_price_row.find_element_by_class_name('detail_icon')
+                # When there is only one ticket available, there is not a detail button
+                except NoSuchElementException:
+                    return element.find_element_by_class_name('col_price')
             except NoSuchElementException:
                 pass
         return None
@@ -193,6 +193,10 @@ class SeatFinder:
                 pass
         button.click()
 
+    def get_next_sibling(self, element):
+        return self.selenium_driver.execute_script("""
+                        return arguments[0].nextElementSibling
+                    """, element)
     # parses times to format ['HHMM',....] (M = minutes...)
     @staticmethod
     def parse_times(times):

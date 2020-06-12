@@ -65,9 +65,9 @@ class SeatFinder:
         if base_url is None:
             self.base_url = self.default_url
 
-        self.departure = self.get_city_code(departure)
-        self.arrival = self.get_city_code(arrival)
-        self.tariff = self.get_tariff_code(tariff)
+        self.departure = self.cities.get(departure, departure)
+        self.arrival = self.cities.get(arrival, arrival)
+        self.tariff = self.tariffs.get(tariff, tariff)
         self.chrome_version = chrome_version
 
         # TODO: Move parsing to GUI
@@ -185,6 +185,7 @@ class SeatFinder:
         return self.selenium_driver.execute_script("""
                         return arguments[0].nextElementSibling
                     """, element)
+
     # parses times to format ['HHMM',....] (M = minutes...)
     @staticmethod
     def parse_times(times):
@@ -222,17 +223,9 @@ class SeatFinder:
             "From {departure} to {arrival}\n"
             "Tariff: {tariff}\n"
             "Chrome version: {chrome_version}\n".format(
-                date=self.date, times=str(self.times), departure=self.departure, arrival=self.arrival, tariff=self.tariff,chrome_version=self.chrome_version
+                date=self.date, times=str(self.times), departure=self.departure, arrival=self.arrival, tariff=self.tariff, chrome_version=self.chrome_version
             )
         )
-
-    # gets code of the city
-    def get_city_code(self, city):
-        return self.cities[str(city)] if self.cities[str(city)] is not None else city
-
-    # gets code of the tarif
-    def get_tariff_code(self, tariff):
-        return self.tariffs[str(tariff.lower())] if self.tariffs[str(tariff.lower())] is not None else tariff
 
     # logs user with given username an password
     def login(self, username, password):

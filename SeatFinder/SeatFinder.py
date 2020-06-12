@@ -12,21 +12,9 @@ from .webdriver_management import *
 
 
 class SeatFinder:
-    url_replacements = {
-        'arrival': '$arrival',
-        'departure': '$departure',
-        'date': '$date',
-        'tariff': '$tariff'
-    }
 
     # url with mock strings, which should be replaced with relevant data
-    default_url = "https://jizdenky.regiojet.cz/Booking/from/" + url_replacements['departure'] + "/to/" \
-                  + url_replacements['arrival'] + "/tarif/" + url_replacements['tariff'] + "/departure/" \
-                  + url_replacements['date'] + "/retdep/" \
-                  + url_replacements['date'] + "/return/false?0#search-results"
-
-    # Url of the booking webpage (generated from defaultUrl)
-    parsed_url = ""
+    default_url = "https://jizdenky.regiojet.cz/Booking/from/{departure}/to/{arrival}/tarif/{tariff}/departure/{date}/retdep/{date}/return/false?0#search-results"
 
     login_url = 'https://jizdenky.regiojet.cz/Login'
     cities = {'Praha': '10202003', 'Pisek': '17904007', 'C. Budejovice': '17904008', 'Brno': '10202002', 'Olomouc': '10202031', 'Ostrava': '10202000'}
@@ -68,41 +56,40 @@ class SeatFinder:
     # class of field with departure
     departure_field_class = 'col_depart'
 
-    def __init__(self, departure, arrival, date, times, tariff='REGULAR', base_url=None, chrome_version=None,
-                 allowed_train_ticket_classes=["low_cost", "standard", "relax"]):
+    def __init__(
+            self, departure, arrival, date, times, tariff='REGULAR', base_url=None, chrome_version=None, allowed_train_ticket_classes=("low_cost", "standard", "relax")
+    ):
         """
-            Sets the url, driver, nad string[s] which is used to find an empty seat on the webpage
+        Sets the url, driver, and string[s] which are used to find an empty seat on the webpage
         """
         if base_url is None:
-            base_url = self.default_url
+            self.base_url = self.default_url
+
+        self.departure = self.get_city_code(departure)
+        self.arrival = self.get_city_code(arrival)
+        self.tariff = self.get_tariff_code(tariff)
+        self.chrome_version = chrome_version
 
         # TODO: Move parsing to GUI
-        date = self.parse_date(date)
-        times = self.parse_times(times)
+        self.date = self.parse_date(date)
+        self.times = self.parse_times(times)
 
         self.page_searches = []
         for one_time in times:
             self.page_searches.append(one_time)
 
-        self.set_parsed_url(departure, arrival, date, tariff, base_url)
+        self.parsed_url = self.base_url.format(departure=self.departure, arrival=self.arrival, date=self.date, tariff=self.tariff)
         self.allowed_train_ticket_classes = allowed_train_ticket_classes
 
-        print(
-              "Date: {}\n"
-              "Times {}\n"
-              "From {} to {}\n"
-              "Tariff: {}\n"
-              "Chrome version: {}\n".format(
-                date, str(times), departure, arrival, tariff, chrome_version
-            )
-        )
+        self.print_config()
 
         self.selenium_driver = get_chromedriver(chrome_version)
 
     def find_seat(self):
-        """ refreshes page until there is not an empty seat
-             @return element of the found seat
-               - this is necessary, because user can search for more then one seat (aka time)
+        """
+        refreshes page until there is not an empty seat
+        @return element of the found seat
+           - this is necessary, because user can search for more then one seat (aka time)
         """
         self.selenium_driver.get(self.parsed_url)
         while 1:
@@ -228,14 +215,16 @@ class SeatFinder:
         return str(year) + date
 
     # replaces elements in base url so it makes sense
-    def set_parsed_url(self, departure, arrival, date, tariff, base_url):
-        departure = self.get_city_code(departure)
-        arrival = self.get_city_code(arrival)
-        tariff = self.get_tariff_code(tariff)
-        tmp_url = base_url.replace(self.url_replacements['arrival'], arrival)
-        tmp_url = tmp_url.replace(self.url_replacements['departure'], departure)
-        tmp_url = tmp_url.replace(self.url_replacements['tariff'], tariff)
-        self.parsed_url = tmp_url.replace(self.url_replacements['date'], date)
+    def print_config(self):
+        print(
+            "Date: {date}\n"
+            "Times {times}\n"
+            "From {departure} to {arrival}\n"
+            "Tariff: {tariff}\n"
+            "Chrome version: {chrome_version}\n".format(
+                date=self.date, times=str(self.times), departure=self.departure, arrival=self.arrival, tariff=self.tariff,chrome_version=self.chrome_version
+            )
+        )
 
     # gets code of the city
     def get_city_code(self, city):

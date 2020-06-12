@@ -125,11 +125,12 @@ class SeatFinder:
             except TimeoutException:
                 self.selenium_driver.get(self.parsed_url)
 
-    # performs the actions necessary to book the seat, when some seat is empty
+    # performs actions necessary to book a seat, when some seat is not empty
     def take_seat(self, element):
 
         self.click_button(element, 1)
         # Brings browser to front
+        # TODO: Make a function from this
         self.selenium_driver.execute_script('window.alert("Seat found!!!")')
         alert = self.selenium_driver.switch_to.alert
         alert.accept()

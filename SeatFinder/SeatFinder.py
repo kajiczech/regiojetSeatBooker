@@ -17,7 +17,15 @@ class SeatFinder:
     default_url = "https://jizdenky.regiojet.cz/Booking/from/{departure}/to/{arrival}/tarif/{tariff}/departure/{date}/retdep/{date}/return/false?0#search-results"
 
     login_url = 'https://jizdenky.regiojet.cz/Login'
-    cities = {'Praha': '10202003', 'Pisek': '17904007', 'C. Budejovice': '17904008', 'Brno': '10202002', 'Olomouc': '10202031', 'Ostrava': '10202000'}
+    cities = {
+        'Praha': '10202003',
+        'Pisek': '17904007',
+        'C. Budejovice': '17904008',
+        'Brno': '10202002',
+        'Olomouc': '10202031',
+        'Ostrava': '10202000',
+        'Zilina': '10202038'
+    }
     tariffs = {'regular': 'REGULAR', 'student': 'CZECH_STUDENT_PASS_26'}
 
     ticket_class_html_classes = {
